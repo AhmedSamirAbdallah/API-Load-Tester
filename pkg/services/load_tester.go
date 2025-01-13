@@ -67,7 +67,7 @@ func (lt *LoadTesterService) runRequest(wg *sync.WaitGroup) {
 	// Send the request
 	statusCode, err := lt.SendRequest(request)
 	if err != nil {
-		log.Printf("Error: %v\n", err) // Use log instead of fmt
+		log.Printf("Error: %v\n", err)
 	} else {
 		log.Printf("Response Status: %d\n", statusCode)
 	}
@@ -83,16 +83,20 @@ func (lt *LoadTesterService) RunLoadTest() {
 
 	// Send requests in batches
 	for batch := 0; batch < batches; batch++ {
+		log.Printf("Starting Batch %d\n", batch+1)
+
+		wg.Add(lt.Config.Concurrency)
 		for i := 0; i < lt.Config.Concurrency; i++ {
-			wg.Add(1)
 			go lt.runRequest(&wg)
 		}
 	}
 
 	// Send remaining requests (if any)
-	for i := 0; i < remainingRequests; i++ {
-		wg.Add(1)
-		go lt.runRequest(&wg)
+	if remainingRequests > 0 {
+		wg.Add(remainingRequests)
+		for i := 0; i < remainingRequests; i++ {
+			go lt.runRequest(&wg)
+		}
 	}
 
 	wg.Wait() // Wait for all requests to complete
